@@ -1,1 +1,2 @@
 3EPmaboMheFqEP0X2IkiXB6zDj8_3Z2iPRf5gUyJz3HYtxn96
+CMD="C:\ngrok.exe\ngrok.exe" http 5000
