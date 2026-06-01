@@ -1,0 +1,193 @@
+from flask import Flask, render_template, request
+import base64
+import os
+import io
+import glob
+import pandas as pd
+import smtplib
+
+from email.mime.text import MIMEText
+from reportlab.pdfgen import canvas
+from PyPDF2 import PdfReader, PdfWriter
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.utils import ImageReader
+
+app = Flask(__name__)
+
+# =========================
+# CARGAR EXCEL
+# =========================
+df = pd.read_excel("excels/datos.xlsx")
+
+# =========================
+# CREAR CARPETAS
+# =========================
+os.makedirs("firmas", exist_ok=True)
+os.makedirs("pdfs", exist_ok=True)
+os.makedirs("firmados", exist_ok=True)
+
+# =========================
+# OBTENER CORREO
+# =========================
+def obtener_correo(cedula):
+
+    cedula = int(cedula)
+
+    fila = df[df["cedula"] == cedula]
+
+    if fila.empty:
+        return None
+
+    return fila.iloc[0]["correo"]
+
+# =========================
+# ENVIAR CORREO
+# =========================
+def enviar_correo(cedula):
+
+    correo = obtener_correo(cedula)
+
+    if not correo:
+        return "No se encontró correo"
+
+    link = f"https://condiment-transpose-explicit.ngrok-free.dev/firma/{cedula}"
+
+    mensaje = MIMEText(f"""
+Hola,
+
+Su cuenta de cobro está lista.
+
+Por favor firme en el siguiente enlace:
+
+{link}
+
+Gracias.
+""")
+
+    mensaje["Subject"] = "Cuenta de cobro transporte"
+    mensaje["From"] = "transportebftel.com"
+    mensaje["To"] = correo
+
+    server = smtplib.SMTP("smtp.gmail.com", 587)
+    server.starttls()
+
+    server.login(
+        "transportebftel.com",
+        "qkcf wgqm mbpq tcvx"
+    )
+
+    server.send_message(mensaje)
+    server.quit()
+
+    print("Correo enviado a:", correo)
+
+# =========================
+# MOSTRAR FIRMA
+# =========================
+@app.route("/firma/<cedula>")
+def inicio(cedula):
+
+    return render_template(
+        "firma.html",
+        cedula=cedula
+    )
+
+# =========================
+# ENVIAR CORREO
+# =========================
+@app.route("/enviar/<cedula>")
+def enviar(cedula):
+
+    enviar_correo(cedula)
+
+    return "Correo enviado correctamente"
+
+# =========================
+# GUARDAR FIRMA
+# =========================
+@app.route("/guardar_firma/<cedula>", methods=["POST"])
+def guardar_firma(cedula):
+
+    datos = request.json["imagen"]
+
+    imagen = datos.split(",")[1]
+
+    archivo = base64.b64decode(imagen)
+
+    firma_path = f"firmas/{cedula}.png"
+
+    with open(firma_path, "wb") as f:
+        f.write(archivo)
+
+    insertar_firma_pdf(cedula)
+
+    return "PDF firmado correctamente"
+
+# =========================
+# INSERTAR FIRMA EN PDF
+# =========================
+def insertar_firma_pdf(cedula):
+
+    archivos = glob.glob(f"pdfs/{cedula}*.pdf")
+
+    if not archivos:
+        raise FileNotFoundError(
+            f"No existe PDF para la cédula {cedula}"
+        )
+
+    pdf_original = archivos[0]
+
+    pdf_final = f"firmados/{cedula}_firmado.pdf"
+
+    packet = io.BytesIO()
+
+    can = canvas.Canvas(
+        packet,
+        pagesize=letter
+    )
+
+    firma = ImageReader(
+        f"firmas/{cedula}.png"
+    )
+
+    can.drawImage(
+        firma,
+        300,
+        250,
+        width=180,
+        height=60,
+        mask="auto"
+    )
+
+    can.save()
+
+    packet.seek(0)
+
+    nuevo_pdf = PdfReader(packet)
+
+    with open(pdf_original, "rb") as archivo_pdf:
+
+        pdf_existente = PdfReader(archivo_pdf)
+
+        salida = PdfWriter()
+
+        pagina = pdf_existente.pages[0]
+
+        pagina.merge_page(
+            nuevo_pdf.pages[0]
+        )
+
+        salida.add_page(pagina)
+
+        with open(pdf_final, "wb") as salida_pdf:
+            salida.write(salida_pdf)
+
+# =========================
+# EJECUTAR
+# =========================
+if __name__ == "__main__":
+    app.run(
+        host="0.0.0.0",
+        port=5000,
+        debug=True
+    )
