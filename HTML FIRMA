@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firma Digital</title>
+</head>
+
+<body>
+
+    <h2>Firma aquí</h2>
+
+    <canvas
+        id="canvas"
+        width="500"
+        height="200"
+        style="border:1px solid black; touch-action:none;">
+    </canvas>
+
+    <br><br>
+
+    <button onclick="limpiar()">Limpiar</button>
+
+    <button onclick="guardarFirma()">Enviar Firma</button>
+
+    <script>
+
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+
+        let dibujando = false;
+
+        // ======================
+        // COMPUTADOR
+        // ======================
+
+        canvas.addEventListener("mousedown", () => {
+            dibujando = true;
+        });
+
+        canvas.addEventListener("mouseup", detenerDibujo);
+
+        canvas.addEventListener("mouseleave", detenerDibujo);
+
+        canvas.addEventListener("mousemove", dibujarMouse);
+
+        function dibujarMouse(evento) {
+
+            if (!dibujando) return;
+
+            ctx.lineWidth = 2;
+            ctx.lineCap = "round";
+
+            ctx.lineTo(
+                evento.offsetX,
+                evento.offsetY
+            );
+
+            ctx.stroke();
+
+            ctx.beginPath();
+
+            ctx.moveTo(
+                evento.offsetX,
+                evento.offsetY
+            );
+        }
+
+        // ======================
+        // CELULAR
+        // ======================
+
+        canvas.addEventListener("touchstart", function (e) {
+
+            e.preventDefault();
+
+            dibujando = true;
+
+        });
+
+        canvas.addEventListener("touchend", function (e) {
+
+            e.preventDefault();
+
+            detenerDibujo();
+
+        });
+
+        canvas.addEventListener("touchmove", function (e) {
+
+            e.preventDefault();
+
+            if (!dibujando) return;
+
+            const rect =
+                canvas.getBoundingClientRect();
+
+            const touch =
+                e.touches[0];
+
+            const x =
+                touch.clientX - rect.left;
+
+            const y =
+                touch.clientY - rect.top;
+
+            ctx.lineWidth = 2;
+            ctx.lineCap = "round";
+
+            ctx.lineTo(x, y);
+
+            ctx.stroke();
+
+            ctx.beginPath();
+
+            ctx.moveTo(x, y);
+
+        });
+
+        // ======================
+        // FUNCIONES
+        // ======================
+
+        function detenerDibujo() {
+
+            dibujando = false;
+
+            ctx.beginPath();
+
+        }
+
+        function limpiar() {
+
+            ctx.clearRect(
+                0,
+                0,
+                canvas.width,
+                canvas.height
+            );
+
+        }
+
+        function guardarFirma() {
+
+            const imagen =
+                canvas.toDataURL();
+
+            fetch(
+                "/guardar_firma/{{ cedula }}",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        imagen: imagen
+                    })
+                }
+            )
+                .then(respuesta =>
+                    respuesta.text()
+                )
+
+                .then(data => {
+
+                    alert(data);
+
+                })
+
+                .catch(error => {
+
+                    alert(
+                        "Error enviando firma"
+                    );
+
+                    console.error(error);
+
+                });
+
+        }
+
+    </script>
+
+</body>
+
+</html>
