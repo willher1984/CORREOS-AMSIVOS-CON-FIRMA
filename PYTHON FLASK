@@ -7,6 +7,8 @@ import pandas as pd
 import smtplib
 import time
 
+import requests
+from datetime import datetime
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
@@ -16,6 +18,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.lib.utils import ImageReader
 
 app = Flask(__name__)
+GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbz3xu7eQL76W0wVMi5wD1aJQ_ba-9SXIhdfDWW5Y-mGqn-OsD1DCcDGdxy3NqaAkI-Y/exec"
 
 # =========================
 # CARGAR EXCEL
@@ -181,6 +184,11 @@ def guardar_firma(cedula):
 
     insertar_firma_pdf(cedula)
 
+    try:
+        registrar_en_sheets(cedula)
+    except Exception as e:
+        print("Error Sheets:", e)
+
     return "PDF firmado correctamente"
 
 # =========================
@@ -241,7 +249,29 @@ def insertar_firma_pdf(cedula):
 
         with open(pdf_final, "wb") as salida_pdf:
             salida.write(salida_pdf)
+def registrar_en_sheets(cedula):
 
+    fila = df[df["cedula"] == int(cedula)]
+
+    if fila.empty:
+        return
+
+    nombre = fila.iloc[0]["nombre"]
+    correo = fila.iloc[0]["correo"]
+
+    data = {
+        "cedula": str(cedula),
+        "nombre": str(nombre),
+        "correo": str(correo),
+        "fecha": datetime.now().strftime("%d/%m/%Y"),
+        "hora": datetime.now().strftime("%H:%M")
+    }
+
+    try:
+        requests.post(GOOGLE_SHEETS_URL, json=data)
+        print("Registrado en Sheets")
+    except Exception as e:
+        print("Error Sheets:", e)
 # =========================
 # EJECUTAR
 # =========================
