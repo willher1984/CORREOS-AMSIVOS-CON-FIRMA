@@ -5,6 +5,7 @@ import io
 import glob
 import pandas as pd
 import smtplib
+import time
 
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -123,6 +124,7 @@ def inicio(cedula):
         cedula=cedula
     )
 
+
 # =========================
 # ENVIAR CORREO
 # =========================
@@ -132,6 +134,33 @@ def enviar(cedula):
     enviar_correo(cedula)
 
     return "Correo enviado correctamente"
+
+@app.route("/enviar_todos")
+def enviar_todos():
+
+    total = len(df)
+
+    enviados = 0
+
+    for _, fila in df.iterrows():
+
+        cedula = str(fila["cedula"])
+
+        try:
+
+            enviar_correo(cedula)
+
+            enviados += 1
+
+            print(f"Enviado {enviados} de {total} -> {cedula}")
+
+            time.sleep(10)
+
+        except Exception as e:
+
+            print(f"Error con {cedula}: {e}")
+
+    return f"Proceso terminado. Enviados: {enviados}"
 
 # =========================
 # GUARDAR FIRMA
