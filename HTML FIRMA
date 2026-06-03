@@ -1,190 +1,254 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Firma Digital</title>
+
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Firma Cuenta de Cobro</title>
+
+<style>
+
+body{
+    margin:0;
+    padding:0;
+    background:#f4f7fb;
+    font-family:Arial, Helvetica, sans-serif;
+}
+
+.contenedor{
+
+    max-width:700px;
+
+    margin:40px auto;
+
+    background:white;
+
+    border-radius:15px;
+
+    padding:30px;
+
+    box-shadow:0 0 20px rgba(0,0,0,.15);
+
+    text-align:center;
+}
+
+.logo{
+
+    width:300px;
+
+    max-width:100%;
+
+    margin-bottom:20px;
+}
+
+h2{
+
+    color:#003366;
+
+    margin-bottom:10px;
+}
+
+.texto{
+
+    color:#555;
+
+    margin-bottom:25px;
+}
+
+canvas{
+
+    border:2px solid #0a4fa3;
+
+    border-radius:10px;
+
+    background:white;
+
+    width:100%;
+
+    max-width:600px;
+
+    height:220px;
+
+    touch-action:none;
+}
+
+.botones{
+
+    margin-top:20px;
+}
+
+button{
+
+    border:none;
+
+    padding:12px 25px;
+
+    margin:5px;
+
+    border-radius:8px;
+
+    cursor:pointer;
+
+    font-size:16px;
+}
+
+.btn-limpiar{
+
+    background:#6c757d;
+
+    color:white;
+}
+
+.btn-enviar{
+
+    background:#0a4fa3;
+
+    color:white;
+}
+
+.btn-enviar:hover{
+
+    opacity:.9;
+}
+
+</style>
+
 </head>
 
 <body>
 
-    <h2>Firma aquí</h2>
+<div class="contenedor">
 
-    <canvas
-        id="canvas"
-        width="500"
-        height="200"
-        style="border:1px solid black; touch-action:none;">
-    </canvas>
+    <img src="/static/logo.jpg" class="logo">
 
-    <br><br>
+    <h2>Firma de Cuenta de Cobro</h2>
 
-    <button onclick="limpiar()">Limpiar</button>
+    <p class="texto">
+        Revise su cuenta de cobro y realice su firma en el área inferior.
+    </p>
 
-    <button onclick="guardarFirma()">Enviar Firma</button>
+    <canvas id="canvas" width="600" height="220"></canvas>
 
-    <script>
+    <div class="botones">
 
-        const canvas = document.getElementById("canvas");
-        const ctx = canvas.getContext("2d");
+        <button class="btn-limpiar" onclick="limpiar()">
+            Limpiar
+        </button>
 
-        let dibujando = false;
+        <button class="btn-enviar" onclick="guardarFirma()">
+            Enviar Firma
+        </button>
 
-        // ======================
-        // COMPUTADOR
-        // ======================
+    </div>
 
-        canvas.addEventListener("mousedown", () => {
-            dibujando = true;
-        });
+</div>
 
-        canvas.addEventListener("mouseup", detenerDibujo);
+<script>
 
-        canvas.addEventListener("mouseleave", detenerDibujo);
+const canvas = document.getElementById('canvas');
 
-        canvas.addEventListener("mousemove", dibujarMouse);
+const ctx = canvas.getContext('2d');
 
-        function dibujarMouse(evento) {
+let dibujando = false;
 
-            if (!dibujando) return;
+function obtenerPosicion(e){
 
-            ctx.lineWidth = 2;
-            ctx.lineCap = "round";
+    const rect = canvas.getBoundingClientRect();
 
-            ctx.lineTo(
-                evento.offsetX,
-                evento.offsetY
-            );
+    if(e.touches){
 
-            ctx.stroke();
+        return {
+            x:e.touches[0].clientX - rect.left,
+            y:e.touches[0].clientY - rect.top
+        };
+    }
 
-            ctx.beginPath();
+    return {
+        x:e.clientX - rect.left,
+        y:e.clientY - rect.top
+    };
+}
 
-            ctx.moveTo(
-                evento.offsetX,
-                evento.offsetY
-            );
-        }
+function iniciar(e){
 
-        // ======================
-        // CELULAR
-        // ======================
+    dibujando = true;
 
-        canvas.addEventListener("touchstart", function (e) {
+    const pos = obtenerPosicion(e);
 
-            e.preventDefault();
+    ctx.beginPath();
 
-            dibujando = true;
+    ctx.moveTo(pos.x,pos.y);
+}
 
-        });
+function dibujar(e){
 
-        canvas.addEventListener("touchend", function (e) {
+    if(!dibujando) return;
 
-            e.preventDefault();
+    e.preventDefault();
 
-            detenerDibujo();
+    const pos = obtenerPosicion(e);
 
-        });
+    ctx.lineWidth = 2;
 
-        canvas.addEventListener("touchmove", function (e) {
+    ctx.lineCap = "round";
 
-            e.preventDefault();
+    ctx.lineTo(pos.x,pos.y);
 
-            if (!dibujando) return;
+    ctx.stroke();
+}
 
-            const rect =
-                canvas.getBoundingClientRect();
+function detener(){
 
-            const touch =
-                e.touches[0];
+    dibujando = false;
 
-            const x =
-                touch.clientX - rect.left;
+    ctx.beginPath();
+}
 
-            const y =
-                touch.clientY - rect.top;
+canvas.addEventListener("mousedown", iniciar);
+canvas.addEventListener("mousemove", dibujar);
+canvas.addEventListener("mouseup", detener);
+canvas.addEventListener("mouseleave", detener);
 
-            ctx.lineWidth = 2;
-            ctx.lineCap = "round";
+canvas.addEventListener("touchstart", iniciar);
+canvas.addEventListener("touchmove", dibujar);
+canvas.addEventListener("touchend", detener);
 
-            ctx.lineTo(x, y);
+function limpiar(){
 
-            ctx.stroke();
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+}
 
-            ctx.beginPath();
+function guardarFirma(){
 
-            ctx.moveTo(x, y);
+    const imagen = canvas.toDataURL();
 
-        });
+    fetch('/guardar_firma/{{ cedula }}',{
 
-        // ======================
-        // FUNCIONES
-        // ======================
+        method:'POST',
 
-        function detenerDibujo() {
+        headers:{
+            'Content-Type':'application/json'
+        },
 
-            dibujando = false;
+        body:JSON.stringify({
+            imagen:imagen
+        })
 
-            ctx.beginPath();
+    })
 
-        }
+    .then(r=>r.text())
 
-        function limpiar() {
+    .then(data=>{
 
-            ctx.clearRect(
-                0,
-                0,
-                canvas.width,
-                canvas.height
-            );
+        alert(data);
 
-        }
+    });
+}
 
-        function guardarFirma() {
-
-            const imagen =
-                canvas.toDataURL();
-
-            fetch(
-                "/guardar_firma/{{ cedula }}",
-                {
-                    method: "POST",
-
-                    headers: {
-                        "Content-Type":
-                            "application/json"
-                    },
-
-                    body: JSON.stringify({
-                        imagen: imagen
-                    })
-                }
-            )
-                .then(respuesta =>
-                    respuesta.text()
-                )
-
-                .then(data => {
-
-                    alert(data);
-
-                })
-
-                .catch(error => {
-
-                    alert(
-                        "Error enviando firma"
-                    );
-
-                    console.error(error);
-
-                });
-
-        }
-
-    </script>
+</script>
 
 </body>
-
 </html>
