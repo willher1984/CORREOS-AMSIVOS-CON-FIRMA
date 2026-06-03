@@ -7,6 +7,8 @@ import pandas as pd
 import smtplib
 
 from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
 from reportlab.pdfgen import canvas
 from PyPDF2 import PdfReader, PdfWriter
 from reportlab.lib.pagesizes import letter
@@ -40,6 +42,7 @@ def obtener_correo(cedula):
 
     return fila.iloc[0]["correo"]
 
+
 # =========================
 # ENVIAR CORREO
 # =========================
@@ -48,35 +51,63 @@ def enviar_correo(cedula):
     correo = obtener_correo(cedula)
 
     if not correo:
-        return "No se encontró correo"
+        print("No se encontró correo")
+        return
 
     link = f"https://condiment-transpose-explicit.ngrok-free.dev/firma/{cedula}"
 
-    mensaje = MIMEText(f"""
+    mensaje = MIMEMultipart()
+
+    mensaje["Subject"] = "Cuenta de cobro transporte Consorcio BFTEL"
+    mensaje["From"] = "transportebftel@gmail.com"
+    mensaje["To"] = correo
+
+    cuerpo = f"""
 Hola,
 
-Su cuenta de cobro está lista.
+Adjunto encontrará su cuenta de cobro, por concepto de transporte.
 
-Por favor firme en el siguiente enlace:
+Por favor revise el documento y, si está de acuerdo, firme en el siguiente enlace y dele enviar:
 
 {link}
 
 Gracias.
-""")
+"""
 
-    mensaje["Subject"] = "Cuenta de cobro transporte"
-    mensaje["From"] = "transportebftel.com"
-    mensaje["To"] = correo
+    mensaje.attach(MIMEText(cuerpo, "plain"))
+
+    archivos = glob.glob(f"pdfs/{cedula}*.pdf")
+
+    if archivos:
+
+        pdf_path = archivos[0]
+
+        with open(pdf_path, "rb") as archivo:
+
+            adjunto = MIMEApplication(
+                archivo.read(),
+                _subtype="pdf"
+            )
+
+            adjunto.add_header(
+                "Content-Disposition",
+                "attachment",
+                filename=os.path.basename(pdf_path)
+            )
+
+            mensaje.attach(adjunto)
 
     server = smtplib.SMTP("smtp.gmail.com", 587)
+
     server.starttls()
 
     server.login(
-        "transportebftel.com",
+        "transportebftel@gmail.com",
         "qkcf wgqm mbpq tcvx"
     )
 
     server.send_message(mensaje)
+
     server.quit()
 
     print("Correo enviado a:", correo)
@@ -137,7 +168,7 @@ def insertar_firma_pdf(cedula):
 
     pdf_original = archivos[0]
 
-    pdf_final = f"firmados/{cedula}_firmado.pdf"
+    pdf_final = f"G:/Mi unidad/PDF_FIRMADOS/{cedula}_firmado.pdf"
 
     packet = io.BytesIO()
 
