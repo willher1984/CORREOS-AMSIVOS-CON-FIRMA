@@ -159,7 +159,7 @@ def enviar_todos():
 
             print(f"Enviado {enviados} de {total} -> {cedula}")
 
-            time.sleep(10)
+            time.sleep(14)
 
         except Exception as e:
 
