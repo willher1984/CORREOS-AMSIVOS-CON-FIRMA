@@ -23,16 +23,18 @@ GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbz3xu7eQL76W0wVMi5w
 # =========================
 # CARGAR EXCEL
 # =========================
-df = pd.read_excel(
-    r"C:\Users\LENOVO\Desktop\CODIGOS IMPORTANTES\FIRMAS_PDF\excels\datos.xlsx"
-)
+df = pd.read_excel(r"C:\Users\LENOVO\Desktop\CODIGOS IMPORTANTES\FIRMAS_PDF\excels\datos.xlsx")
+
+BASE_DIR = r"C:\Users\LENOVO\Desktop\CODIGOS IMPORTANTES\FIRMAS_PDF"
+PDF_FOLDER = os.path.join(BASE_DIR, "pdfs")
+FIRMAS_FOLDER = os.path.join(BASE_DIR, "firmas")
 
 # =========================
 # CREAR CARPETAS
 # =========================
-os.makedirs("firmas", exist_ok=True)
-os.makedirs("pdfs", exist_ok=True)
-os.makedirs("firmados", exist_ok=True)
+os.makedirs(FIRMAS_FOLDER, exist_ok=True)
+os.makedirs(PDF_FOLDER, exist_ok=True)
+os.makedirs(os.path.join(BASE_DIR, "firmados"), exist_ok=True)
 
 # =========================
 # OBTENER CORREO
@@ -82,7 +84,12 @@ Gracias.
 
     mensaje.attach(MIMEText(cuerpo, "plain"))
 
-    archivos = glob.glob(f"pdfs/{cedula}*.pdf")
+    archivos = glob.glob(
+    os.path.join(PDF_FOLDER, f"{cedula}*.pdf")
+)
+
+    print("BUSCANDO PDF:", os.path.join(PDF_FOLDER, f"{cedula}*.pdf"))
+    print("PDFS ENCONTRADOS:", archivos)
 
     if archivos:
 
@@ -159,7 +166,7 @@ def enviar_todos():
 
             print(f"Enviado {enviados} de {total} -> {cedula}")
 
-            time.sleep(14)
+            time.sleep(10)
 
         except Exception as e:
 
@@ -179,7 +186,10 @@ def guardar_firma(cedula):
 
     archivo = base64.b64decode(imagen)
 
-    firma_path = f"firmas/{cedula}.png"
+    firma_path = os.path.join(
+    FIRMAS_FOLDER,
+    f"{cedula}.png"
+)
 
     with open(firma_path, "wb") as f:
         f.write(archivo)
@@ -198,8 +208,11 @@ def guardar_firma(cedula):
 # =========================
 def insertar_firma_pdf(cedula):
 
-    archivos = glob.glob(f"pdfs/{cedula}*.pdf")
-
+    archivos = glob.glob(
+    os.path.join(PDF_FOLDER, f"{cedula}*.pdf")
+)
+    print("BUSCANDO:", os.path.join(PDF_FOLDER, f"{cedula}*.pdf"))
+    print("ENCONTRADOS:", archivos)
     if not archivos:
         raise FileNotFoundError(
             f"No existe PDF para la cédula {cedula}"
@@ -217,8 +230,8 @@ def insertar_firma_pdf(cedula):
     )
 
     firma = ImageReader(
-        f"firmas/{cedula}.png"
-    )
+    os.path.join(FIRMAS_FOLDER, f"{cedula}.png")
+)
 
     can.drawImage(
         firma,
