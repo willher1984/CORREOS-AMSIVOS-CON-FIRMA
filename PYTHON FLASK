@@ -23,7 +23,9 @@ GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbz3xu7eQL76W0wVMi5w
 # =========================
 # CARGAR EXCEL
 # =========================
-df = pd.read_excel("excels/datos.xlsx")
+df = pd.read_excel(
+    r"C:\Users\LENOVO\Desktop\CODIGOS IMPORTANTES\FIRMAS_PDF\excels\datos.xlsx"
+)
 
 # =========================
 # CREAR CARPETAS
